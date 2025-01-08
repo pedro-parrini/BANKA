@@ -43,7 +43,7 @@ st.title(":green[BANKA - Registro de Compras]")
 # Barra lateral com duas opções
 
 st.sidebar.title("Menu")
-option = st.sidebar.selectbox("Escolha uma opção:", ("Lançamento de Compras", "Controle Operacional", "Cancelar Lançamento", "Cadastrar Fornecedores"))
+option = st.sidebar.selectbox("Escolha uma opção:", ("Lançamento de Compras", "Controle Operacional", "Cancelar Lançamento", "Cadastrar Fornecedores", "Resultados"))
 
 # Configurar fuso horário para o Brasil
 brazil_tz = pytz.timezone("America/Sao_Paulo")
@@ -54,7 +54,7 @@ current_hour = current_time.hour
 if option == "Lançamento de Compras":
 
     # Verificar se o horário atual está entre 13:00 e 20:00
-    if not 13 <= current_hour < 20:
+    if 13 <= current_hour < 20:
         st.error("Acesso restrito! Esta aba pode ser acessada entre 13:00 e 20:00 no horário do Brasil.")
 
     else:
@@ -65,10 +65,7 @@ if option == "Lançamento de Compras":
         # Definir o tipo de registro
         tipo_registro = st.radio("Qual tipo de registro você quer fazer?", ['Boleto', 'PIX'])
 
-        destinatarios_emails = ['pedro.parrini@equityrio.com.br',
-                                'brunodnpeniche@gmail.com', 
-                                'financeiro.banka@gmail.com', 
-                                'gerencia.banka@gmail.com']
+        destinatarios_emails = ['pedro.parrini@equityrio.com.br','brunodnpeniche@gmail.com','financeiro.banka@gmail.com','gerencia.banka@gmail.com']
 
 #        destinatarios_emails = ['pedro.parrini@equityrio.com.br',]
 
@@ -134,7 +131,7 @@ if option == "Lançamento de Compras":
 
                         destinatarios_emails.append(email_funcionario)
 
-                        valor_boleto_formatado = 'R$ ' + valor_boleto
+                        valor_boleto_formatado = 'R$ ' + str(valor_boleto)
 
                         criar_pasta("uploads")
 
@@ -167,7 +164,7 @@ if option == "Lançamento de Compras":
                                             "Fornecedor": fornecedor, 
                                             "Banca": loja, 
                                             "Família": familia, 
-                                            "Custo de Aquisição": int(valor_boleto),
+                                            "Custo de Aquisição": float(valor_boleto),
                                             "Tipo": tipo_registro,
                                 }
                         
@@ -223,7 +220,7 @@ if option == "Lançamento de Compras":
                     
                     destinatarios_emails.append(email_funcionario)
 
-                    valor_pix_formatado = "R$ " + valor_pix
+                    valor_pix_formatado = "R$ " + str(valor_pix)
 
                     criar_pasta("uploads")
 
@@ -240,7 +237,7 @@ if option == "Lançamento de Compras":
                                     "Fornecedor": fornecedor, 
                                     "Banca": loja, 
                                     "Família": familia, 
-                                    "Custo de Aquisição": int(valor_pix),
+                                    "Custo de Aquisição": float(valor_pix),
                                     "Tipo": tipo_registro,
                         }
                     
@@ -404,3 +401,6 @@ elif option == "Cadastrar Fornecedores":
             file_name=r"Fornecedores.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )    
+        
+elif option == "Resultados":
+    pass

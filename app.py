@@ -54,7 +54,7 @@ current_hour = current_time.hour
 if option == "Lançamento de Compras":
 
     # Verificar se o horário atual está entre 13:00 e 20:00
-    if 13 <= current_hour < 20:
+    if not 13 <= current_hour < 20:
         st.error("Acesso restrito! Esta aba pode ser acessada entre 13:00 e 20:00 no horário do Brasil.")
 
     else:

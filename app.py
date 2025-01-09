@@ -129,7 +129,7 @@ if option == "Lançamento de Compras":
 
                         data_vencimento = data_vencimento.strftime("%d/%m/%Y")
 
-                        destinatarios_emails.append(email_funcionario)
+                        destinatarios_emails.insert(0, email_funcionario)
 
                         valor_boleto_formatado = 'R$ ' + str(valor_boleto)
 
@@ -218,7 +218,7 @@ if option == "Lançamento de Compras":
 
                     data_vencimento = data_vencimento.strftime("%d/%m/%Y")
                     
-                    destinatarios_emails.append(email_funcionario)
+                    destinatarios_emails.insert(0, email_funcionario)
 
                     valor_pix_formatado = "R$ " + str(valor_pix)
 

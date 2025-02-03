@@ -406,426 +406,437 @@ elif option == "Cadastrar Fornecedores":
         
 elif option == "Resultados":
 
-    # Carregar a planilha
-    file_path = 'Banka l Planilha Gerencial.xlsx'
+    # Caixa de entrada para a senha
+    password = st.text_input("Digite a senha para acessar a área restrita:", type="password")
+    PASSWORD = "Novembro.2024"
+    
+    if password == PASSWORD:
 
-    # Relacionar o nome da unidade com os nomes das respectivas abas na Planilha Gerencial
-    sheets = {
-        'Baixo Gávea': pd.read_excel(file_path, sheet_name='Output BG'),
-        'Tijuca': pd.read_excel(file_path, sheet_name='Output TJK'),
-        'PJ': pd.read_excel(file_path, sheet_name='Output PJ'),
-        'São Conrado': pd.read_excel(file_path, sheet_name='Output SC'),
-        'Consolidado': pd.read_excel(file_path, sheet_name='Output Consolidado (Caixa)'),
-    }
+        st.success("Senha correta! Agora, você tem acesso à planilha gerencial da Banka.")
 
-    # Configurar o layout do Streamlit
-    unidade = st.radio('*Selecionar a unidade', ['Baixo Gávea', 'Tijuca', 'PJ', 'São Conrado', 'Consolidado'])
+        # Carregar a planilha
+        file_path = 'Banka l Planilha Gerencial.xlsx'
 
-    # Opções de escolha (unidade)
-    df = dic_value(sheets, unidade)
+        # Relacionar o nome da unidade com os nomes das respectivas abas na Planilha Gerencial
+        sheets = {
+            'Baixo Gávea': pd.read_excel(file_path, sheet_name='Output BG'),
+            'Tijuca': pd.read_excel(file_path, sheet_name='Output TJK'),
+            'PJ': pd.read_excel(file_path, sheet_name='Output PJ'),
+            'São Conrado': pd.read_excel(file_path, sheet_name='Output SC'),
+            'Consolidado': pd.read_excel(file_path, sheet_name='Output Consolidado (Caixa)'),
+        }
 
-    # Tratar o df
-    def convert_column(column_name):
-        try:
-            # Tentar converter para o formato mês/ano
-            return pd.to_datetime(column_name).strftime('%m/%Y')
-        except Exception:
-            # Se falhar, manter o nome original da coluna
-            return column_name
+        # Configurar o layout do Streamlit
+        unidade = st.radio('*Selecionar a unidade', ['Baixo Gávea', 'Tijuca', 'PJ', 'São Conrado', 'Consolidado'])
 
-    df.columns = [convert_column(col) for col in df.columns]
+        # Opções de escolha (unidade)
+        df = dic_value(sheets, unidade)
 
-    df = df.drop(df.columns[[1, 2]], axis=1)
+        # Tratar o df
+        def convert_column(column_name):
+            try:
+                # Tentar converter para o formato mês/ano
+                return pd.to_datetime(column_name).strftime('%m/%Y')
+            except Exception:
+                # Se falhar, manter o nome original da coluna
+                return column_name
 
-    # Filtrar as colunas de interesse
-    columns_to_keep = [unidade, '08/2024', '09/2024', '10/2024', '11/2024', '12/2024', '01/2025', '02/2025']
+        df.columns = [convert_column(col) for col in df.columns]
 
-    df = df[columns_to_keep]
+        df = df.drop(df.columns[[1, 2]], axis=1)
 
-    # Definindo a coluna 'unidade' como índice
-    df.set_index(unidade, inplace=True)
+        # Filtrar as colunas de interesse
+        columns_to_keep = [unidade, '08/2024', '09/2024', '10/2024', '11/2024', '12/2024', '01/2025', '02/2025']
 
-    # Transpondo o DataFrame para organizar as datas como colunas
-    df_transposto = df.T.reset_index()
-    df_transposto = df_transposto.rename(columns={'index': 'Data'})
+        df = df[columns_to_keep]
 
-    # Convertendo as datas para datetime
-    df_transposto['Data'] = pd.to_datetime(df_transposto['Data'], format='%m/%Y')
+        # Definindo a coluna 'unidade' como índice
+        df.set_index(unidade, inplace=True)
 
+        # Transpondo o DataFrame para organizar as datas como colunas
+        df_transposto = df.T.reset_index()
+        df_transposto = df_transposto.rename(columns={'index': 'Data'})
 
-    # Gráfico 1 - Receitas vs Custo de Aquisição de Produtos (caixa) + Margem Bruta
-
-    # Criando a figura com barras para Entrada de Caixa e Custo de Aquisição de Produtos
-    fig1 = go.Figure()
-
-    # Adicionando as barras
-    fig1.add_trace(go.Bar(
-        x=df_transposto['Data'],
-        y=df_transposto['Entrada de Caixa'],
-        name='Entrada de Caixa'
-    ))
-
-    fig1.add_trace(go.Bar(
-        x=df_transposto['Data'],
-        y=df_transposto['Custo de Aquisição de Produtos'],
-        name='Custo de Aquisição de Produtos'
-    ))
-
-    # Adicionando a linha mgm bruta no eixo Y secundário com linha tracejada e pontos
-    fig1.add_trace(go.Scatter(
-        x=df_transposto['Data'],
-        y=df_transposto['mgm bruta'],
-        mode='lines+markers',  # Mantém a linha com bolinhas nos pontos
-        name='mgm bruta',
-        yaxis='y2',  # Define que será no eixo Y secundário
-        line=dict(color='red', width=2, dash='dash'),  # Linha tracejada
-        marker=dict(size=8)  # Tamanho das bolinhas
-    ))
-
-    # Configurando o layout com eixo Y secundário, título centralizado e legenda ajustada
-    fig1.update_layout(
-        title={
-            'text': 'Entrada de Caixa, Custo de Aquisição de Produtos e mgm bruta',
-            'x': 0.5,  # Centraliza o título
-            'xanchor': 'center'
-        },
-        xaxis=dict(
-            title='Data',
-            tickmode='linear',
-            dtick='M1',
-            tickformat='%m/%Y'
-        ),
-        yaxis=dict(
-            title='Valor (R$)'
-        ),
-        yaxis2=dict(
-            title='mgm bruta',
-            overlaying='y',
-            side='right'
-        ),
-        legend=dict(
-            x=1.15,  # Move a legenda para a direita
-            y=1,     # Mantém a legenda na parte superior
-            bgcolor='rgba(255,255,255,0.5)',  # Fundo semitransparente para não cobrir o gráfico
-            bordercolor='black',
-            borderwidth=1
-        ),
-        barmode='group'
-    )
-
-    # Exibindo o gráfico no Streamlit
-    st.plotly_chart(fig1)
+        # Convertendo as datas para datetime
+        df_transposto['Data'] = pd.to_datetime(df_transposto['Data'], format='%m/%Y')
 
 
-    # Gráfico 2 - Destrinchar as Receitas (caixa)
+        # Gráfico 1 - Receitas vs Custo de Aquisição de Produtos (caixa) + Margem Bruta
 
-    fig2 = go.Figure()
+        # Criando a figura com barras para Entrada de Caixa e Custo de Aquisição de Produtos
+        fig1 = go.Figure()
 
-    # Lista das categorias de custo a serem empilhadas
-    categorias_custo = [
-        'Crédito', 
-        'Débito', 
-        'Pix', 
-        'Antecipação (crédito)', 
-        'Cash', 
-        'Receitas Financeiras (líquida)', 
-    ]
-
-    # Adicionando cada categoria de custo como uma barra empilhada
-    for categoria in categorias_custo:
-        fig2.add_trace(go.Bar(
+        # Adicionando as barras
+        fig1.add_trace(go.Bar(
             x=df_transposto['Data'],
-            y=df_transposto[categoria],
-            name=categoria
+            y=df_transposto['Entrada de Caixa'],
+            name='Entrada de Caixa'
         ))
 
-    # Configurando o layout com barras empilhadas
-    fig2.update_layout(
-        title={
-            'text': 'Entradas de Caixa por Categoria',
-            'x': 0.5,  # Centraliza o título
-            'xanchor': 'center'
-        },
-        xaxis=dict(
-            title='Data',
-            tickmode='linear',
-            dtick='M1',
-            tickformat='%m/%Y'
-        ),
-        yaxis=dict(
-            title='Total (R$)'
-        ),
-        legend=dict(
-            x=1.05,  # Move a legenda para a direita para não cobrir o gráfico
-            y=1,
-            bgcolor='rgba(255,255,255,0.5)',
-            bordercolor='black',
-            borderwidth=1
-        ),
-        barmode='stack'  # Configuração para barras empilhadas
-    )
-
-    # Exibindo o gráfico no Streamlit
-    st.plotly_chart(fig2)
-
-
-    # Gráfico 3 - Destrinhcar o Custo com Aquisição de Produtos
-
-    fig3 = go.Figure()
-
-    # Lista das categorias de custo a serem empilhadas
-    categorias_custo = [
-        'Bebidas', 
-        'Bomboniere', 
-        'Cigarros', 
-        'Diversos', 
-        'Jornais', 
-        'Livros', 
-        'Revistas', 
-        'Sorvetes', 
-        'Tabacaria'
-    ]
-
-    # Adicionando cada categoria de custo como uma barra empilhada
-    for categoria in categorias_custo:
-        fig3.add_trace(go.Bar(
+        fig1.add_trace(go.Bar(
             x=df_transposto['Data'],
-            y=df_transposto[categoria],
-            name=categoria
+            y=df_transposto['Custo de Aquisição de Produtos'],
+            name='Custo de Aquisição de Produtos'
         ))
 
-    # Configurando o layout com barras empilhadas
-    fig3.update_layout(
-        title={
-            'text': 'Custos de Aquisição de Produtos por Categoria',
-            'x': 0.5,  # Centraliza o título
-            'xanchor': 'center'
-        },
-        xaxis=dict(
-            title='Data',
-            tickmode='linear',
-            dtick='M1',
-            tickformat='%m/%Y'
-        ),
-        yaxis=dict(
-            title='Custo Total (R$)'
-        ),
-        legend=dict(
-            x=1.05,  # Move a legenda para a direita para não cobrir o gráfico
-            y=1,
-            bgcolor='rgba(255,255,255,0.5)',
-            bordercolor='black',
-            borderwidth=1
-        ),
-        barmode='stack'  # Configuração para barras empilhadas
-    )
-
-    # Exibindo o gráfico no Streamlit
-    st.plotly_chart(fig3)
-
-
-    # Gráfico 4 - Destrinhcar os Custos, em geral
-
-    fig4 = go.Figure()
-
-    # Lista das categorias de custo a serem empilhadas
-    categorias_custo = [
-        'Equipe Operacional', 
-        'Despesas c/ Imóvel', 
-        'Despesas Administrativas', 
-        'Despesas Tributárias', 
-        'Custo c/ Taxas e Devoluções', 
-    ]
-
-    # Adicionando cada categoria de custo como uma barra empilhada
-    for categoria in categorias_custo:
-        fig4.add_trace(go.Bar(
+        # Adicionando a linha mgm bruta no eixo Y secundário com linha tracejada e pontos
+        fig1.add_trace(go.Scatter(
             x=df_transposto['Data'],
-            y=df_transposto[categoria],
-            name=categoria
+            y=df_transposto['mgm bruta'],
+            mode='lines+markers',  # Mantém a linha com bolinhas nos pontos
+            name='mgm bruta',
+            yaxis='y2',  # Define que será no eixo Y secundário
+            line=dict(color='red', width=2, dash='dash'),  # Linha tracejada
+            marker=dict(size=8)  # Tamanho das bolinhas
         ))
 
-    # Configurando o layout com barras empilhadas
-    fig4.update_layout(
-        title={
-            'text': 'Custos Operacionais',
-            'x': 0.5,  # Centraliza o título
-            'xanchor': 'center'
-        },
-        xaxis=dict(
-            title='Data',
-            tickmode='linear',
-            dtick='M1',
-            tickformat='%m/%Y'
-        ),
-        yaxis=dict(
-            title='Custo Total (R$)'
-        ),
-        legend=dict(
-            x=1.05,  # Move a legenda para a direita para não cobrir o gráfico
-            y=1,
-            bgcolor='rgba(255,255,255,0.5)',
-            bordercolor='black',
-            borderwidth=1
-        ),
-        barmode='stack'  # Configuração para barras empilhadas
-    )
+        # Configurando o layout com eixo Y secundário, título centralizado e legenda ajustada
+        fig1.update_layout(
+            title={
+                'text': 'Entrada de Caixa, Custo de Aquisição de Produtos e mgm bruta',
+                'x': 0.5,  # Centraliza o título
+                'xanchor': 'center'
+            },
+            xaxis=dict(
+                title='Data',
+                tickmode='linear',
+                dtick='M1',
+                tickformat='%m/%Y'
+            ),
+            yaxis=dict(
+                title='Valor (R$)'
+            ),
+            yaxis2=dict(
+                title='mgm bruta',
+                overlaying='y',
+                side='right'
+            ),
+            legend=dict(
+                x=1.15,  # Move a legenda para a direita
+                y=1,     # Mantém a legenda na parte superior
+                bgcolor='rgba(255,255,255,0.5)',  # Fundo semitransparente para não cobrir o gráfico
+                bordercolor='black',
+                borderwidth=1
+            ),
+            barmode='group'
+        )
 
-    # Exibindo o gráfico no Streamlit
-    st.plotly_chart(fig4)
+        # Exibindo o gráfico no Streamlit
+        st.plotly_chart(fig1)
 
 
-    # Gráfico 5 - Raio X das finanças
+        # Gráfico 2 - Destrinchar as Receitas (caixa)
 
-    fig5 = go.Figure()
+        fig2 = go.Figure()
 
-    # Categorias para as barras empilhadas
-    receitas = ['Crédito', 'Débito', 'Pix', 'Antecipação (crédito)', 'Cash', 'Receitas Financeiras (líquida)']
-    custos_despesas = [
-        'Custo c/ Taxas e Devoluções', 'Bebidas', 'Bomboniere', 'Cigarros', 'Diversos', 
-        'Jornais', 'Livros', 'Revistas', 'Sorvetes', 'Tabacaria',
-        'Equipe Operacional', 'Despesas c/ Imóvel', 'Despesas Administrativas', 'Despesas Tributárias'
-    ]
-    resultado = ['Resultado Líquido (caixa)']
-    linhas_eixo_y2 = ['mgm bruta', 'mgm líquida']
+        # Lista das categorias de custo a serem empilhadas
+        categorias_custo = [
+            'Crédito', 
+            'Débito', 
+            'Pix', 
+            'Antecipação (crédito)', 
+            'Cash', 
+            'Receitas Financeiras (líquida)', 
+        ]
 
-    # Adicionando as receitas (primeira barra empilhada)
-    for categoria in receitas:
+        # Adicionando cada categoria de custo como uma barra empilhada
+        for categoria in categorias_custo:
+            fig2.add_trace(go.Bar(
+                x=df_transposto['Data'],
+                y=df_transposto[categoria],
+                name=categoria
+            ))
+
+        # Configurando o layout com barras empilhadas
+        fig2.update_layout(
+            title={
+                'text': 'Entradas de Caixa por Categoria',
+                'x': 0.5,  # Centraliza o título
+                'xanchor': 'center'
+            },
+            xaxis=dict(
+                title='Data',
+                tickmode='linear',
+                dtick='M1',
+                tickformat='%m/%Y'
+            ),
+            yaxis=dict(
+                title='Total (R$)'
+            ),
+            legend=dict(
+                x=1.05,  # Move a legenda para a direita para não cobrir o gráfico
+                y=1,
+                bgcolor='rgba(255,255,255,0.5)',
+                bordercolor='black',
+                borderwidth=1
+            ),
+            barmode='stack'  # Configuração para barras empilhadas
+        )
+
+        # Exibindo o gráfico no Streamlit
+        st.plotly_chart(fig2)
+
+
+        # Gráfico 3 - Destrinhcar o Custo com Aquisição de Produtos
+
+        fig3 = go.Figure()
+
+        # Lista das categorias de custo a serem empilhadas
+        categorias_custo = [
+            'Bebidas', 
+            'Bomboniere', 
+            'Cigarros', 
+            'Diversos', 
+            'Jornais', 
+            'Livros', 
+            'Revistas', 
+            'Sorvetes', 
+            'Tabacaria'
+        ]
+
+        # Adicionando cada categoria de custo como uma barra empilhada
+        for categoria in categorias_custo:
+            fig3.add_trace(go.Bar(
+                x=df_transposto['Data'],
+                y=df_transposto[categoria],
+                name=categoria
+            ))
+
+        # Configurando o layout com barras empilhadas
+        fig3.update_layout(
+            title={
+                'text': 'Custos de Aquisição de Produtos por Categoria',
+                'x': 0.5,  # Centraliza o título
+                'xanchor': 'center'
+            },
+            xaxis=dict(
+                title='Data',
+                tickmode='linear',
+                dtick='M1',
+                tickformat='%m/%Y'
+            ),
+            yaxis=dict(
+                title='Custo Total (R$)'
+            ),
+            legend=dict(
+                x=1.05,  # Move a legenda para a direita para não cobrir o gráfico
+                y=1,
+                bgcolor='rgba(255,255,255,0.5)',
+                bordercolor='black',
+                borderwidth=1
+            ),
+            barmode='stack'  # Configuração para barras empilhadas
+        )
+
+        # Exibindo o gráfico no Streamlit
+        st.plotly_chart(fig3)
+
+
+        # Gráfico 4 - Destrinhcar os Custos, em geral
+
+        fig4 = go.Figure()
+
+        # Lista das categorias de custo a serem empilhadas
+        categorias_custo = [
+            'Equipe Operacional', 
+            'Despesas c/ Imóvel', 
+            'Despesas Administrativas', 
+            'Despesas Tributárias', 
+            'Custo c/ Taxas e Devoluções', 
+        ]
+
+        # Adicionando cada categoria de custo como uma barra empilhada
+        for categoria in categorias_custo:
+            fig4.add_trace(go.Bar(
+                x=df_transposto['Data'],
+                y=df_transposto[categoria],
+                name=categoria
+            ))
+
+        # Configurando o layout com barras empilhadas
+        fig4.update_layout(
+            title={
+                'text': 'Custos Operacionais',
+                'x': 0.5,  # Centraliza o título
+                'xanchor': 'center'
+            },
+            xaxis=dict(
+                title='Data',
+                tickmode='linear',
+                dtick='M1',
+                tickformat='%m/%Y'
+            ),
+            yaxis=dict(
+                title='Custo Total (R$)'
+            ),
+            legend=dict(
+                x=1.05,  # Move a legenda para a direita para não cobrir o gráfico
+                y=1,
+                bgcolor='rgba(255,255,255,0.5)',
+                bordercolor='black',
+                borderwidth=1
+            ),
+            barmode='stack'  # Configuração para barras empilhadas
+        )
+
+        # Exibindo o gráfico no Streamlit
+        st.plotly_chart(fig4)
+
+
+        # Gráfico 5 - Raio X das finanças
+
+        fig5 = go.Figure()
+
+        # Categorias para as barras empilhadas
+        receitas = ['Crédito', 'Débito', 'Pix', 'Antecipação (crédito)', 'Cash', 'Receitas Financeiras (líquida)']
+        custos_despesas = [
+            'Custo c/ Taxas e Devoluções', 'Bebidas', 'Bomboniere', 'Cigarros', 'Diversos', 
+            'Jornais', 'Livros', 'Revistas', 'Sorvetes', 'Tabacaria',
+            'Equipe Operacional', 'Despesas c/ Imóvel', 'Despesas Administrativas', 'Despesas Tributárias'
+        ]
+        resultado = ['Resultado Líquido (caixa)']
+        linhas_eixo_y2 = ['mgm bruta', 'mgm líquida']
+
+        # Adicionando as receitas (primeira barra empilhada)
+        for categoria in receitas:
+            fig5.add_trace(go.Bar(
+                x=df_transposto['Data'],
+                y=df_transposto[categoria],
+                name=categoria,
+                offsetgroup=0,  # Primeira barra para cada mês
+                legendgroup='Receitas',  # Agrupamento na legenda
+                showlegend=True
+            ))
+
+        # Adicionando os custos/despesas (segunda barra empilhada com valores negativos)
+        for categoria in custos_despesas:
+            fig5.add_trace(go.Bar(
+                x=df_transposto['Data'],
+                y=-df_transposto[categoria],  # Invertendo para aparecer negativo no gráfico
+                name=categoria,
+                offsetgroup=1,  # Segunda barra para cada mês
+                legendgroup='Custos/Despesas',  # Agrupamento na legenda
+                showlegend=True
+            ))
+
+        # Adicionando o resultado líquido (terceira barra)
         fig5.add_trace(go.Bar(
             x=df_transposto['Data'],
-            y=df_transposto[categoria],
-            name=categoria,
-            offsetgroup=0,  # Primeira barra para cada mês
-            legendgroup='Receitas',  # Agrupamento na legenda
+            y=df_transposto['Resultado Líquido (caixa)'],
+            name='Resultado Líquido (caixa)',
+            offsetgroup=2,  # Terceira barra para cada mês
+            marker_color='black',
+            legendgroup='Resultado',
             showlegend=True
         ))
 
-    # Adicionando os custos/despesas (segunda barra empilhada com valores negativos)
-    for categoria in custos_despesas:
-        fig5.add_trace(go.Bar(
+        # Adicionando as linhas no eixo Y secundário
+        fig5.add_trace(go.Scatter(
             x=df_transposto['Data'],
-            y=-df_transposto[categoria],  # Invertendo para aparecer negativo no gráfico
-            name=categoria,
-            offsetgroup=1,  # Segunda barra para cada mês
-            legendgroup='Custos/Despesas',  # Agrupamento na legenda
-            showlegend=True
+            y=df_transposto['mgm bruta'],
+            mode='lines+markers',
+            name='mgm bruta',
+            yaxis='y2',
+            line=dict(color='red', width=2, dash='dash'),
+            marker=dict(size=8),
+            legendgroup='Margens'
         ))
 
-    # Adicionando o resultado líquido (terceira barra)
-    fig5.add_trace(go.Bar(
-        x=df_transposto['Data'],
-        y=df_transposto['Resultado Líquido (caixa)'],
-        name='Resultado Líquido (caixa)',
-        offsetgroup=2,  # Terceira barra para cada mês
-        marker_color='black',
-        legendgroup='Resultado',
-        showlegend=True
-    ))
-
-    # Adicionando as linhas no eixo Y secundário
-    fig5.add_trace(go.Scatter(
-        x=df_transposto['Data'],
-        y=df_transposto['mgm bruta'],
-        mode='lines+markers',
-        name='mgm bruta',
-        yaxis='y2',
-        line=dict(color='red', width=2, dash='dash'),
-        marker=dict(size=8),
-        legendgroup='Margens'
-    ))
-
-    fig5.add_trace(go.Scatter(
-        x=df_transposto['Data'],
-        y=df_transposto['mgm líquida'],
-        mode='lines+markers',
-        name='mgm líquida',
-        yaxis='y2',
-        line=dict(color='blue', width=2, dash='dot'),
-        marker=dict(size=8),
-        legendgroup='Margens'
-    ))
-
-    # Configurando o layout com barras lado a lado e linhas no eixo Y secundário
-    fig5.update_layout(
-        title={
-            'text': 'Receitas, Despesas e Resultado Líquido com MGM Bruta e Líquida',
-            'x': 0.5,
-            'xanchor': 'center'
-        },
-        xaxis=dict(
-            title='Data',
-            tickmode='linear',
-            dtick='M1',
-            tickformat='%m/%Y'
-        ),
-        yaxis=dict(
-            title='Valores (R$)'
-        ),
-        yaxis2=dict(
-            title='MGM Bruta / Líquida',
-            overlaying='y',
-            side='right'
-        ),
-        legend=dict(
-            x=1.05,
-            y=1,
-            bgcolor='rgba(255,255,255,0.5)',
-            bordercolor='black',
-            borderwidth=1
-        ),
-        barmode='group',  # Empilhar as barras dentro de cada grupo
-        bargap=0.3,  # Espaçamento entre os grupos de barras
-        bargroupgap=0.1  # Espaçamento entre as barras dentro do mesmo mês
-    )
-
-    # Exibindo o gráfico no Streamlit
-    st.plotly_chart(fig5)
-
-
-    # Gráfico 7 - Distribuição de Dividendos
-
-    fig7 = go.Figure()
-
-    # Lista das categorias de custo a serem empilhadas
-    categorias_custo = [
-        'Bruno Titus', 
-        'Raphael Zay', 
-        'Vicente Falcão', 
-    ]
-
-    # Adicionando cada categoria de custo como uma barra empilhada
-    for categoria in categorias_custo:
-        fig7.add_trace(go.Bar(
+        fig5.add_trace(go.Scatter(
             x=df_transposto['Data'],
-            y=df_transposto[categoria],
-            name=categoria
+            y=df_transposto['mgm líquida'],
+            mode='lines+markers',
+            name='mgm líquida',
+            yaxis='y2',
+            line=dict(color='blue', width=2, dash='dot'),
+            marker=dict(size=8),
+            legendgroup='Margens'
         ))
 
-    # Configurando o layout com barras empilhadas
-    fig7.update_layout(
-        title={
-            'text': 'Distribuição de Dividendos',
-            'x': 0.5,  # Centraliza o título
-            'xanchor': 'center'
-        },
-        xaxis=dict(
-            title='Data',
-            tickmode='linear',
-            dtick='M1',
-            tickformat='%m/%Y'
-        ),
-        yaxis=dict(
-            title='Total (R$)'
-        ),
-        legend=dict(
-            x=1.05,  # Move a legenda para a direita para não cobrir o gráfico
-            y=1,
-            bgcolor='rgba(255,255,255,0.5)',
-            bordercolor='black',
-            borderwidth=1
-        ),
-        barmode='stack'  # Configuração para barras empilhadas
-    )
+        # Configurando o layout com barras lado a lado e linhas no eixo Y secundário
+        fig5.update_layout(
+            title={
+                'text': 'Receitas, Despesas e Resultado Líquido com MGM Bruta e Líquida',
+                'x': 0.5,
+                'xanchor': 'center'
+            },
+            xaxis=dict(
+                title='Data',
+                tickmode='linear',
+                dtick='M1',
+                tickformat='%m/%Y'
+            ),
+            yaxis=dict(
+                title='Valores (R$)'
+            ),
+            yaxis2=dict(
+                title='MGM Bruta / Líquida',
+                overlaying='y',
+                side='right'
+            ),
+            legend=dict(
+                x=1.05,
+                y=1,
+                bgcolor='rgba(255,255,255,0.5)',
+                bordercolor='black',
+                borderwidth=1
+            ),
+            barmode='group',  # Empilhar as barras dentro de cada grupo
+            bargap=0.3,  # Espaçamento entre os grupos de barras
+            bargroupgap=0.1  # Espaçamento entre as barras dentro do mesmo mês
+        )
 
-    # Exibindo o gráfico no Streamlit
-    st.plotly_chart(fig7)
+        # Exibindo o gráfico no Streamlit
+        st.plotly_chart(fig5)
+
+
+        # Gráfico 7 - Distribuição de Dividendos
+
+        fig7 = go.Figure()
+
+        # Lista das categorias de custo a serem empilhadas
+        categorias_custo = [
+            'Bruno Titus', 
+            'Raphael Zay', 
+            'Vicente Falcão', 
+        ]
+
+        # Adicionando cada categoria de custo como uma barra empilhada
+        for categoria in categorias_custo:
+            fig7.add_trace(go.Bar(
+                x=df_transposto['Data'],
+                y=df_transposto[categoria],
+                name=categoria
+            ))
+
+        # Configurando o layout com barras empilhadas
+        fig7.update_layout(
+            title={
+                'text': 'Distribuição de Dividendos',
+                'x': 0.5,  # Centraliza o título
+                'xanchor': 'center'
+            },
+            xaxis=dict(
+                title='Data',
+                tickmode='linear',
+                dtick='M1',
+                tickformat='%m/%Y'
+            ),
+            yaxis=dict(
+                title='Total (R$)'
+            ),
+            legend=dict(
+                x=1.05,  # Move a legenda para a direita para não cobrir o gráfico
+                y=1,
+                bgcolor='rgba(255,255,255,0.5)',
+                bordercolor='black',
+                borderwidth=1
+            ),
+            barmode='stack'  # Configuração para barras empilhadas
+        )
+
+        # Exibindo o gráfico no Streamlit
+        st.plotly_chart(fig7)
+
+    elif password:
+        st.error("Senha incorreta. Tente novamente.")
